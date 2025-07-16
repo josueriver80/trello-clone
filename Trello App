@@ -1,0 +1,94 @@
+import { useState, useEffect } from "react";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+
+const initialData = {
+  lists: {
+    "todo": {
+      title: "To Do",
+      cards: [
+        { id: "1", content: "Crear estructura del proyecto" },
+        { id: "2", content: "Diseñar los componentes" }
+      ]
+    },
+    "in-progress": {
+      title: "In Progress",
+      cards: [{ id: "3", content: "Implementar Drag & Drop" }]
+    },
+    "done": {
+      title: "Done",
+      cards: [{ id: "4", content: "Configurar React" }]
+    }
+  }
+};
+
+export default function App() {
+  const [data, setData] = useState(() => {
+    const saved = localStorage.getItem("trello-data");
+    return saved ? JSON.parse(saved) : initialData;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("trello-data", JSON.stringify(data));
+  }, [data]);
+
+  const onDragEnd = (result) => {
+    const { source, destination } = result;
+    if (!destination) return;
+
+    const sourceList = data.lists[source.droppableId];
+    const destList = data.lists[destination.droppableId];
+    const [movedCard] = sourceList.cards.splice(source.index, 1);
+
+    destList.cards.splice(destination.index, 0, movedCard);
+
+    setData({
+      lists: {
+        ...data.lists,
+        [source.droppableId]: sourceList,
+        [destination.droppableId]: destList
+      }
+    });
+  };
+
+  return (
+    <div className="p-4 font-sans bg-gray-100 min-h-screen">
+      <h1 className="text-3xl font-bold mb-6">Josue's Trello App 🚀</h1>
+      <DragDropContext onDragEnd={onDragEnd}>
+        <div className="flex gap-4">
+          {Object.entries(data.lists).map(([key, list]) => (
+            <Droppable droppableId={key} key={key}>
+              {(provided) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className="bg-white rounded-lg shadow-md p-4 w-64"
+                >
+                  <h2 className="text-xl font-semibold mb-3">{list.title}</h2>
+                  {list.cards.map((card, index) => (
+                    <Draggable
+                      draggableId={card.id}
+                      index={index}
+                      key={card.id}
+                    >
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className="bg-blue-100 rounded p-2 mb-2 shadow"
+                        >
+                          {card.content}
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          ))}
+        </div>
+      </DragDropContext>
+    </div>
+  );
+}
